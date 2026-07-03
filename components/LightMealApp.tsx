@@ -18,7 +18,8 @@ import {
   ShoppingBasket,
   Sprout,
   Sun,
-  Undo2
+  Undo2,
+  X
 } from "lucide-react";
 import {
   defaultIngredients,
@@ -30,6 +31,8 @@ import {
   Recipe,
   recipes
 } from "@/lib/meal-data";
+import { ingredientImages } from "@/src/data/ingredientImages";
+import { recipeImages } from "@/src/data/recipeImages";
 
 const storeKey = "light-meal-calendar-v1";
 const tabs = ["家里库存", "食材分类", "保质期提醒", "历史记录"];
@@ -37,12 +40,22 @@ const heroInventory = ["milk", "egg", "oats", "blueberry", "spinach", "yogurt"];
 
 type Store = { ingredients: Ingredient[]; logs: InventoryLog[]; mealPlan: MealPlan[]; lastDeduct?: InventoryLog[] };
 
+function withDefaults(store: Store): Store {
+  const saved = new Map(store.ingredients.map((item) => [item.id, item]));
+  return {
+    ...store,
+    ingredients: defaultIngredients.map((item) => ({ ...item, ...saved.get(item.id) })),
+    mealPlan: store.mealPlan?.length ? store.mealPlan : defaultMealPlan,
+    logs: store.logs ?? []
+  };
+}
+
 function loadStore(): Store {
   if (typeof window === "undefined") return { ingredients: defaultIngredients, logs: defaultLogs, mealPlan: defaultMealPlan };
   const saved = window.localStorage.getItem(storeKey);
   if (!saved) return { ingredients: defaultIngredients, logs: defaultLogs, mealPlan: defaultMealPlan };
   try {
-    return JSON.parse(saved) as Store;
+    return withDefaults(JSON.parse(saved) as Store);
   } catch {
     return { ingredients: defaultIngredients, logs: defaultLogs, mealPlan: defaultMealPlan };
   }
@@ -82,11 +95,31 @@ function recipeScore(recipe: Recipe, ingredients: Ingredient[]) {
   };
 }
 
+function missingForRecipe(recipe: Recipe, ingredients: Ingredient[]) {
+  return recipe.ingredients.flatMap((part) => {
+    const item = ingredients.find((candidate) => candidate.id === part.ingredientId);
+    const current = item?.currentQuantity ?? 0;
+    return current >= part.quantity ? [] : [{ ...part, missing: part.quantity - current }];
+  });
+}
+
+function availablePercent(recipe: Recipe, ingredients: Ingredient[]) {
+  return Math.round(((recipe.ingredients.length - missingForRecipe(recipe, ingredients).length) / recipe.ingredients.length) * 100);
+}
+
+function prepTips(recipe: Recipe) {
+  return recipe.ingredients.slice(0, 3).map((part) => {
+    if (["salmon", "shrimp", "beef", "chicken-breast", "chicken-thigh"].includes(part.ingredientId)) return `${part.name}解冻`;
+    return part.name;
+  });
+}
+
 export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" }) {
   const [store, setStore] = useState<Store>({ ingredients: defaultIngredients, logs: defaultLogs, mealPlan: defaultMealPlan });
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState("家里库存");
   const [activeRecipeId, setActiveRecipeId] = useState(store.mealPlan[0].lunchRecipeId);
+  const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
 
   useEffect(() => {
     const loaded = loadStore();
@@ -100,8 +133,11 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
   }, [ready, store]);
 
   const today = store.mealPlan[0] ?? defaultMealPlan[0];
+  const tomorrow = store.mealPlan[1] ?? defaultMealPlan[1];
   const todayRecipe = recipes.find((recipe) => recipe.id === today.lunchRecipeId) ?? recipes[0];
+  const tomorrowRecipe = recipes.find((recipe) => recipe.id === tomorrow.lunchRecipeId) ?? recipes[1];
   const activeRecipe = recipes.find((recipe) => recipe.id === activeRecipeId) ?? todayRecipe;
+  const tomorrowMissing = missingForRecipe(tomorrowRecipe, store.ingredients);
   const recommendations = useMemo(
     () => recipes.map((recipe) => ({ recipe, meta: recipeScore(recipe, store.ingredients) })).sort((a, b) => b.meta.score - a.meta.score).slice(0, 3),
     [store.ingredients]
@@ -174,7 +210,6 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
   }
 
   function completeLunch(recipe: Recipe) {
-    if (!window.confirm(`是否按本菜谱自动扣减食材库存？\n${recipe.ingredients.map((item) => `${item.name} -${item.quantity}${item.unit}`).join("\n")}`)) return;
     const createdAt = new Date().toISOString();
     const logs = recipe.ingredients.map((part) => {
       const ingredient = store.ingredients.find((item) => item.id === part.ingredientId);
@@ -255,11 +290,31 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
             </div>
           </div>
 
-          <RecipeHero recipe={todayRecipe} onComplete={() => completeLunch(todayRecipe)} onUndo={undoLastDeduct} canUndo={Boolean(store.lastDeduct?.length)} />
+          <RecipeHero recipe={todayRecipe} onComplete={() => setPendingRecipe(todayRecipe)} onUndo={undoLastDeduct} canUndo={Boolean(store.lastDeduct?.length)} />
         </div>
 
         {view === "home" ? (
           <>
+            <section className="mt-6 grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
+              <PlanCard
+                title="今天计划"
+                day="今天 · 星期三"
+                plan={today}
+                recipe={todayRecipe}
+                completion={completion * 25}
+                deducted={today.completedStatus.lunch}
+                featured
+              />
+              <PlanCard
+                title="明天计划"
+                day="明天 · 星期四"
+                plan={tomorrow}
+                recipe={tomorrowRecipe}
+                missing={tomorrowMissing}
+                available={availablePercent(tomorrowRecipe, store.ingredients)}
+              />
+            </section>
+
             <section id="week-plan" className="mt-6">
               <Panel title="WEEK PLAN · 一周午餐计划（晚餐不安排）" kicker="" action={<button onClick={randomWeek} className="soft-button"><RefreshCw className="h-4 w-4" />随机生成</button>}>
                 <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-7">
@@ -268,7 +323,7 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
                     return (
                       <button key={day.date} onClick={() => setActiveRecipeId(recipe.id)} className={`rounded-[12px] border bg-white p-3 text-center shadow-[0_10px_28px_rgba(70,63,48,.06)] transition hover:-translate-y-0.5 ${index === 2 ? "border-[#8fa27c] bg-[#f3f5e9]" : "border-[#ece6dc]"}`}>
                         <span className="block font-semibold">{day.date}</span>
-                        <FoodImage name={recipe.name} />
+                        <RecipeImage recipe={recipe} className="mx-auto mt-3 h-[70px] w-[120px] rounded-xl" />
                         <b className="mt-3 block text-sm">{recipe.name}</b>
                         <select onClick={(event) => event.stopPropagation()} value={day.lunchRecipeId} onChange={(event) => setLunch(index, event.target.value)} className="mt-3 w-full rounded-full border border-[#ded7ca] bg-[#fbfaf6] px-2 py-1.5 text-xs">
                           {recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
@@ -292,9 +347,12 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
               <Panel title="优先消耗这些食材" kicker="SMART PICK">
                 <div className="grid gap-3">
                   {recommendations.map(({ recipe, meta }) => (
-                    <button key={recipe.id} onClick={() => setActiveRecipeId(recipe.id)} className="rounded-[12px] bg-[#f3efe2] p-4 text-left transition hover:-translate-y-0.5">
-                      <b>{recipe.name}</b>
-                      <p className="mt-2 text-sm text-[#7d7668]">{meta.reason} · 现有食材可完成 {meta.percent}% · 还需购买 {meta.missing} 样</p>
+                    <button key={recipe.id} onClick={() => setActiveRecipeId(recipe.id)} className="grid grid-cols-[84px_1fr] gap-3 rounded-[12px] bg-[#f3efe2] p-3 text-left transition hover:-translate-y-0.5">
+                      <RecipeImage recipe={recipe} className="h-20 rounded-lg" />
+                      <span>
+                        <b>{recipe.name}</b>
+                        <p className="mt-2 text-sm text-[#7d7668]">{meta.reason} · 现有食材可完成 {meta.percent}% · 还需购买 {meta.missing} 样</p>
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -308,8 +366,8 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
               <Panel title="购物清单" kicker="MARKET LIST">
                 <ul className="space-y-3 text-sm">
                   {store.ingredients.filter((item) => item.currentQuantity <= item.minQuantity || daysLeft(item.expiryDate) <= 2).slice(0, 6).map((item) => (
-                    <li key={item.id} className="flex items-center justify-between rounded-lg bg-[#fbfaf6] px-4 py-3">
-                      <span>{item.name}</span>
+                    <li key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-[#fbfaf6] px-3 py-2">
+                      <span className="flex items-center gap-3"><IngredientImage ingredient={item} className="h-10 w-12 rounded-lg" />{item.name}</span>
                       <span className="text-[#a05a50]">{item.currentQuantity}{item.unit}</span>
                     </li>
                   ))}
@@ -347,6 +405,16 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
           </section>
         )}
       </section>
+      {pendingRecipe && (
+        <DeductDialog
+          recipe={pendingRecipe}
+          onCancel={() => setPendingRecipe(null)}
+          onConfirm={() => {
+            completeLunch(pendingRecipe);
+            setPendingRecipe(null);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -363,6 +431,70 @@ function MealPill({ icon, label, value, done, active }: { icon: "sun" | "sun-hot
         <span>{value}</span>
         {done ? <Check className="h-4 w-4 shrink-0 text-[#6f835e]" /> : <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${active ? "bg-[#f07a2b]" : "bg-[#7f8578]"}`} />}
       </span>
+    </div>
+  );
+}
+
+function PlanCard({
+  title,
+  day,
+  plan,
+  recipe,
+  completion,
+  deducted,
+  missing = [],
+  available,
+  featured
+}: {
+  title: string;
+  day: string;
+  plan: MealPlan;
+  recipe: Recipe;
+  completion?: number;
+  deducted?: boolean;
+  missing?: Array<{ name: string; missing: number; unit: string }>;
+  available?: number;
+  featured?: boolean;
+}) {
+  return (
+    <section className={`rounded-[14px] border p-5 shadow-[0_16px_42px_rgba(70,63,48,.07)] ${featured ? "border-[#dce5d6] bg-[#f7f9f0]" : "border-[#ece6dc] bg-white"}`}>
+      <div className="grid gap-4 sm:grid-cols-[150px_1fr]">
+        <RecipeImage recipe={recipe} className="h-36 rounded-xl" />
+        <div>
+          <p className="text-sm font-semibold text-[#7b866f]">{day}</p>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <h2 className="font-serif text-2xl text-[#2f4328]">{title}</h2>
+            {typeof completion === "number" && <span className="rounded-full bg-white px-3 py-1 text-sm text-[#6f835e]">{completion}% 完成</span>}
+          </div>
+          <div className="mt-4 grid gap-2 text-sm text-[#555a50]">
+            <PlanLine label="早餐" value={plan.breakfast} />
+            <PlanLine label="午餐" value={recipe.name} />
+            <PlanLine label="下午加餐" value={plan.snack} />
+            <PlanLine label="晚餐" value={plan.dinnerStatus} />
+          </div>
+          {featured ? (
+            <p className="mt-4 rounded-lg bg-white px-4 py-3 text-sm text-[#667a5f]">{deducted ? "午餐库存已扣减" : "午餐完成后可一键扣减库存"}</p>
+          ) : (
+            <div className="mt-4 rounded-lg bg-[#fbfaf6] px-4 py-3 text-sm text-[#6f675b]">
+              <p><Sprout className="mr-2 inline h-4 w-4 text-[#7f966b]" />提前准备：{prepTips(recipe).join("、")}</p>
+              <p className="mt-2">
+                {missing.length
+                  ? <>还缺：{missing.slice(0, 3).map((item) => `${item.name} ${item.missing}${item.unit}`).join("、")} <Link href="#shopping" className="ml-2 text-[#6f835e] underline">去购物清单</Link></>
+                  : <>现有库存可完成 {available}%</>}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PlanLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-[#eee7dc] pb-2">
+      <span className="font-semibold">{label}</span>
+      <span className="text-right">{value}</span>
     </div>
   );
 }
@@ -385,12 +517,12 @@ function Panel({ title, kicker, action, children }: { title: string; kicker: str
 function RecipeHero({ recipe, onComplete, onUndo, canUndo }: { recipe: Recipe; onComplete: () => void; onUndo: () => void; canUndo: boolean }) {
   return (
     <div className="relative min-h-[336px] overflow-hidden rounded-[14px] border border-[#ece6dc] bg-[#eee6d8] shadow-[0_16px_42px_rgba(70,63,48,.08)]">
-      <FoodImage name={recipe.name} large />
+      <RecipeImage recipe={recipe} className="h-full min-h-[336px]" />
       <div className="absolute left-10 top-10 max-w-[210px] rounded-[8px] bg-white/86 p-6 shadow-[0_14px_34px_rgba(70,63,48,.10)] backdrop-blur">
         <p className="font-serif text-sm uppercase tracking-wide text-[#4d5148]">TODAY&apos;S TABLE</p>
         <div className="mt-3 h-px w-10 bg-[#6f835e]" />
         <h2 className="mt-4 font-serif text-3xl leading-tight text-[#1f241e]">{recipe.name}</h2>
-        <p className="mt-5 text-sm leading-7 text-[#4f554b]">鲜嫩牛肉搭配彩椒和时蔬，营养均衡，轻盈满足。</p>
+        <p className="mt-5 text-sm leading-7 text-[#4f554b]">{recipe.ingredients.slice(0, 3).map((item) => item.name).join("、")}组合，营养均衡，轻盈满足。</p>
         <div className="mt-5 flex flex-wrap gap-2">
           <button onClick={onComplete} className="inline-flex items-center gap-2 rounded-full bg-[#6f835e] px-3 py-2 text-xs font-semibold text-white"><ChefHat className="h-4 w-4" />扣库存</button>
           {canUndo && <button onClick={onUndo} className="inline-flex items-center gap-2 rounded-full bg-[#f0eadf] px-3 py-2 text-xs text-[#4f554b]"><Undo2 className="h-4 w-4" />撤销</button>}
@@ -400,14 +532,57 @@ function RecipeHero({ recipe, onComplete, onUndo, canUndo }: { recipe: Recipe; o
   );
 }
 
-function FoodImage({ name, large = false }: { name: string; large?: boolean }) {
+function RecipeImage({ recipe, className }: { recipe: Recipe; className: string }) {
+  const image = recipeImages[recipe.id];
+  if (!image) return <ImageFallback label={recipe.name} className={className} />;
   return (
-    <div className={`${large ? "food-photo-large h-full min-h-[336px]" : "food-photo-small mx-auto mt-3 h-[70px] w-[120px] rounded-xl"} food-photo relative overflow-hidden`}>
-      <span className="food-bowl" />
-      <span className="food-rice" />
-      <span className="food-toppings" />
-      <span className="food-chopsticks" />
-      {!large && <span className="sr-only">{name}</span>}
+    <img src={image.src} alt={image.alt} className={`${className} w-full object-cover`} loading="lazy" />
+  );
+}
+
+function IngredientImage({ ingredient, className }: { ingredient: Ingredient; className: string }) {
+  const image = ingredientImages[ingredient.id];
+  if (!image) return <ImageFallback label={ingredient.name} className={className} />;
+  return (
+    <img src={image.src} alt={image.alt} className={`${className} object-cover`} loading="lazy" />
+  );
+}
+
+function ImageFallback({ label, className }: { label: string; className: string }) {
+  return (
+    <div className={`${className} grid place-items-center bg-[#f3efe2] text-center text-sm font-semibold text-[#6f835e]`}>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function DeductDialog({ recipe, onCancel, onConfirm }: { recipe: Recipe; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-[#2f332c]/35 px-4 backdrop-blur-sm">
+      <section className="w-full max-w-lg rounded-[18px] border border-[#ece6dc] bg-[#fffdf8] p-5 shadow-[0_24px_80px_rgba(47,51,44,.24)]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[.22em] text-[#8b947f]">AUTO DEDUCT</p>
+            <h2 className="mt-2 font-serif text-2xl text-[#2f4328]">是否按本菜谱自动扣减库存？</h2>
+            <p className="mt-2 text-sm text-[#777568]">完成「{recipe.name}」后，将记录到库存历史。</p>
+          </div>
+          <button onClick={onCancel} className="grid h-9 w-9 place-items-center rounded-full bg-[#f0eadf]" aria-label="关闭">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-5 grid gap-2">
+          {recipe.ingredients.map((item) => (
+            <div key={item.ingredientId} className="flex items-center justify-between rounded-lg bg-[#f7f1e7] px-4 py-3 text-sm">
+              <span>{item.name}</span>
+              <span className="text-[#a05a50]">-{item.quantity}{item.unit}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 flex justify-end gap-3">
+          <button onClick={onCancel} className="rounded-full bg-[#f0eadf] px-5 py-2 text-sm text-[#555a50]">先不扣</button>
+          <button onClick={onConfirm} className="rounded-full bg-[#6f835e] px-5 py-2 text-sm font-semibold text-white">确认扣减</button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -433,6 +608,7 @@ function InventoryCard({ item, mini, onUse, onRestock, onCustom }: { item: Ingre
         </div>
         <span className={`rounded-full px-3 py-1 text-xs ${color}`}>{label}</span>
       </div>
+      <IngredientImage ingredient={item} className={`${mini ? "mt-3 h-16" : "mt-4 h-24"} w-full rounded-xl`} />
       <div className={`${mini ? "my-3 min-h-10" : "my-5 min-h-28"} grid place-items-center`}>
         {item.visualType === "liquid" ? <LiquidVisual item={item} /> : item.visualType === "count" ? <CountVisual item={item} /> : <WeightVisual item={item} />}
       </div>
@@ -545,7 +721,7 @@ function WeightVisual({ item }: { item: Ingredient }) {
 function RecipeDetail({ recipe, ingredients }: { recipe: Recipe; ingredients: Ingredient[] }) {
   return (
     <div className="grid gap-5 md:grid-cols-[.75fr_1fr]">
-      <FoodImage name={recipe.name} />
+      <RecipeImage recipe={recipe} className="h-40 rounded-xl" />
       <div>
         <div className="flex flex-wrap gap-2">
           {recipe.tags.map((tag) => <span key={tag} className="rounded-full bg-[#eef3e7] px-3 py-1 text-xs text-[#5d7056]">{tag}</span>)}

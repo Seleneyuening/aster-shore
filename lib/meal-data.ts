@@ -62,6 +62,7 @@ export const defaultIngredients: Ingredient[] = [
   ["oats", "燕麦", "主食", "g", 1000, 450, 200, "2026-09-01", "2026-06-28", true, "weight"],
   ["yogurt", "无糖酸奶", "乳制品", "g", 500, 260, 150, "2026-07-07", "2026-07-01", true, "weight"],
   ["blueberry", "蓝莓", "水果", "g", 250, 120, 80, "2026-07-05", "2026-07-02", false, "weight"],
+  ["banana", "香蕉", "水果", "根", 6, 4, 2, "2026-07-06", "2026-07-02", false, "count"],
   ["spinach", "菠菜", "蔬菜", "g", 200, 80, 80, "2026-07-04", "2026-07-01", false, "weight"],
   ["beef", "牛肉", "肉类", "g", 600, 420, 150, "2026-07-08", "2026-07-02", false, "weight"],
   ["chicken-breast", "鸡胸肉", "肉类", "g", 800, 520, 180, "2026-07-09", "2026-07-01", true, "weight"],
@@ -100,7 +101,7 @@ export const defaultIngredients: Ingredient[] = [
   purchaseDate: purchaseDate as string,
   isStaple: isStaple as boolean,
   visualType: visualType as VisualType,
-  image: "",
+  image: `/images/ingredients/${id}.svg`,
   createdAt: now,
   updatedAt: now
 }));
@@ -145,7 +146,7 @@ export const recipes: Recipe[] = defs.map(([id, name, tags, steamerFriendly, ing
   name,
   category: "午餐",
   tags,
-  image: `/recipe-${(index % 6) + 1}`,
+  image: `/images/recipes/${id}.svg`,
   prepTime: 8 + (index % 4) * 2,
   cookTime: steamerFriendly ? 18 : 12 + (index % 3) * 3,
   servings: 1,

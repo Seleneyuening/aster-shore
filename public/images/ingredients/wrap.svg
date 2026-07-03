@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="420" viewBox="0 0 560 420">
+  <rect width="560" height="420" rx="36" fill="#fbf8ef"/>
+  <ellipse cx="280" cy="318" rx="178" ry="36" fill="#e6dece"/>
+  <circle cx="282" cy="190" r="96" fill="#d8b983"/>
+  <circle cx="248" cy="154" r="38" fill="#fffaf0" opacity=".38"/>
+  <path d="M224 284 C268 306 320 306 362 282" fill="none" stroke="#6f835e" stroke-width="10" stroke-linecap="round" opacity=".45"/>
+  <text x="280" y="372" text-anchor="middle" font-size="34" fill="#2f4328" font-family="PingFang SC,serif">全麦卷饼</text>
+</svg>
