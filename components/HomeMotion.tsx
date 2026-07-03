@@ -27,6 +27,7 @@ export function HomeMotion() {
       <div className="motion-stars" />
       <div className="motion-clouds" />
       <div className="motion-ocean" />
+      <div className="motion-reflection" />
       <div className="motion-lighthouse" />
       <div className="motion-flowers" />
     </div>
