@@ -21,6 +21,8 @@ a { color: inherit; text-decoration: none; }
 button, input, textarea { font: inherit; }
 
 .home-cover {
+  --mx: 0px;
+  --my: 0px;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -33,6 +35,8 @@ button, input, textarea { font: inherit; }
   inset: 0;
   pointer-events: none;
   background: url("/images/aster-shore-hero.png") center top / 100% auto no-repeat;
+  transform: translate3d(calc(var(--mx) * -.22), calc(var(--my) * -.18), 0) scale(1.015);
+  transition: transform .45s ease-out;
   z-index: 0;
 }
 
@@ -51,6 +55,76 @@ button, input, textarea { font: inherit; }
 .home-cover > * {
   position: relative;
   z-index: 2;
+}
+
+.motion-field {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.motion-field > * {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.motion-stars {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.9) 0 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(205,184,255,.55) 0 1px, transparent 1.8px);
+  background-position:
+    calc(18px + var(--mx)) calc(38px + var(--my)),
+    calc(42px + var(--mx)) calc(10px + var(--my));
+  background-size: 118px 118px, 173px 173px;
+  opacity: .34;
+  animation: twinkle 7s ease-in-out infinite alternate;
+}
+
+.motion-clouds {
+  background:
+    radial-gradient(ellipse at 18% 30%, rgba(255,210,226,.13), transparent 30%),
+    radial-gradient(ellipse at 70% 26%, rgba(255,180,158,.12), transparent 32%),
+    radial-gradient(ellipse at 48% 38%, rgba(129,118,199,.13), transparent 36%);
+  filter: blur(18px);
+  opacity: .72;
+  transform: translate3d(calc(var(--mx) * .16), calc(var(--my) * .08), 0);
+  animation: cloudDrift 46s linear infinite alternate;
+}
+
+.motion-ocean {
+  top: 45%;
+  background:
+    radial-gradient(ellipse at 48% 25%, rgba(255,188,125,.34), transparent 16%),
+    repeating-linear-gradient(178deg, rgba(255,255,255,.13) 0 1px, transparent 1px 16px);
+  mix-blend-mode: screen;
+  opacity: .34;
+  transform: translate3d(calc(var(--mx) * .12), calc(var(--my) * .08), 0);
+  animation: oceanGlow 12s ease-in-out infinite alternate;
+}
+
+.motion-lighthouse {
+  background:
+    radial-gradient(circle at 88% 33%, rgba(255,221,165,.9) 0 5px, rgba(255,187,119,.4) 6px 24px, transparent 72px),
+    radial-gradient(ellipse at 84% 33%, rgba(255,201,143,.18), transparent 22%);
+  mix-blend-mode: screen;
+  opacity: .74;
+  animation: lighthousePulse 6.5s ease-in-out infinite;
+}
+
+.motion-flowers {
+  top: auto;
+  bottom: -2%;
+  height: 28%;
+  background:
+    radial-gradient(ellipse at 12% 72%, rgba(188,128,220,.22), transparent 10%),
+    radial-gradient(ellipse at 72% 66%, rgba(240,139,184,.2), transparent 12%),
+    linear-gradient(86deg, transparent 0 7%, rgba(100,84,148,.26) 7.2% 7.8%, transparent 8% 20%, rgba(88,96,136,.2) 20.2% 20.8%, transparent 21% 48%, rgba(116,90,154,.24) 48.2% 48.7%, transparent 49%);
+  transform-origin: bottom;
+  opacity: .62;
+  animation: flowerSway 8s ease-in-out infinite alternate;
 }
 
 .shore-bg {
@@ -90,6 +164,14 @@ button, input, textarea { font: inherit; }
   border-radius: 10px;
 }
 
+.hero-glass:hover,
+.quiet-card:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    0 18px 58px rgba(157,140,255,.18),
+    0 8px 34px rgba(240,139,105,.13);
+}
+
 .home-panel {
   border: 1px solid rgba(255,255,255,.14);
   background: linear-gradient(180deg, rgba(9, 20, 50, .72), rgba(8, 17, 43, .64));
@@ -99,6 +181,7 @@ button, input, textarea { font: inherit; }
 }
 
 .fade-up {
+  opacity: 0;
   animation: fadeUp .7s ease both;
 }
 
@@ -109,6 +192,33 @@ button, input, textarea { font: inherit; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: .22; filter: brightness(.9); }
+  45% { opacity: .42; filter: brightness(1.18); }
+  72% { opacity: .3; filter: brightness(1.02); }
+}
+
+@keyframes cloudDrift {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to { background-position: 52px 0, -38px 10px, 24px -8px; }
+}
+
+@keyframes oceanGlow {
+  from { opacity: .24; background-position: 0 0, 0 0; }
+  to { opacity: .42; background-position: 12px 8px, 32px 6px; }
+}
+
+@keyframes lighthousePulse {
+  0%, 100% { opacity: .48; filter: blur(0); }
+  46% { opacity: .86; filter: blur(.4px); }
+  58% { opacity: .68; }
+}
+
+@keyframes flowerSway {
+  from { transform: skewX(-1.4deg) translateX(-3px); }
+  to { transform: skewX(1.2deg) translateX(3px); }
 }
 
 @keyframes shimmer {

@@ -8,7 +8,7 @@ export function FeatureCards() {
         {worlds.map((item) => {
           const Icon = item.icon;
           return (
-            <Link href={item.href} key={item.title} className="group flex gap-5 border-white/10 p-6 transition hover:bg-white/8 md:border-r md:last:border-r-0">
+            <Link href={item.href} key={item.title} className="quiet-card group flex gap-5 border-white/10 p-6 transition hover:bg-white/8 md:border-r md:last:border-r-0">
               <Icon className="mt-1 h-8 w-8 shrink-0 text-[#a996ff]" />
               <span>
                 <h2 className="font-serif text-2xl">{item.title}</h2>
