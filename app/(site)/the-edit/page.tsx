@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { ArrowRight, Flower2, Gem, Shirt, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
+
+export const metadata: Metadata = {
+  title: "The Edit",
+  description: "Discover beauty. Build a life that feels like your own."
+};
+
 
 const items = [
   { title: "Beauty", icon: Gem },

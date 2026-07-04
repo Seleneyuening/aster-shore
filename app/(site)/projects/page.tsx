@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { PageHero } from "@/components/PageHero";
 import { ProjectsGrid } from "@/components/ProjectsGrid";
+
+export const metadata: Metadata = {
+  title: "Projects",
+  description: "Experiments, tools, and worlds in progress."
+};
+
 
 export default function ProjectsPage() {
   return (

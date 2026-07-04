@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { ArrowRight, BookOpen, CalendarCheck, Moon, RotateCcw, Salad, Vote } from "lucide-react";
 import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
+
+export const metadata: Metadata = {
+  title: "The Current",
+  description: "Small systems. Quiet momentum. A life in motion."
+};
+
 
 const items = [
   { title: "Daily Reset", icon: RotateCcw },

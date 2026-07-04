@@ -25,6 +25,8 @@ export function HomeMotion() {
   return (
     <div className="motion-field" aria-hidden="true">
       <div className="motion-stars" />
+      <div className="motion-shooting" />
+      <div className="motion-petals" />
       <div className="motion-clouds" />
       <div className="motion-ocean" />
       <div className="motion-reflection" />

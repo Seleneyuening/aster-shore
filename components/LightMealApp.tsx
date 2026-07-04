@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock3,
   Coffee,
+  Download,
   History,
   Moon,
   RefreshCw,
@@ -19,6 +20,7 @@ import {
   Sprout,
   Sun,
   Undo2,
+  Upload,
   X
 } from "lucide-react";
 import {
@@ -114,17 +116,26 @@ function prepTips(recipe: Recipe) {
   });
 }
 
+const weekdayNames = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"];
+
 export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" }) {
   const [store, setStore] = useState<Store>({ ingredients: defaultIngredients, logs: defaultLogs, mealPlan: defaultMealPlan });
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState("家里库存");
   const [activeRecipeId, setActiveRecipeId] = useState(store.mealPlan[0].lunchRecipeId);
   const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
+  // 真实日期在挂载后计算，避免静态导出与客户端水合不一致
+  const [todayIdx, setTodayIdx] = useState(0);
+  const [greeting, setGreeting] = useState("Good morning");
 
   useEffect(() => {
     const loaded = loadStore();
     setStore(loaded);
-    setActiveRecipeId(loaded.mealPlan[0]?.lunchRecipeId ?? recipes[0].id);
+    const now = new Date();
+    const idx = (now.getDay() + 6) % 7;
+    setTodayIdx(idx);
+    setGreeting(now.getHours() < 12 ? "Good morning" : now.getHours() < 18 ? "Good afternoon" : "Good evening");
+    setActiveRecipeId(loaded.mealPlan[idx]?.lunchRecipeId ?? recipes[0].id);
     setReady(true);
   }, []);
 
@@ -132,8 +143,9 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
     if (ready) window.localStorage.setItem(storeKey, JSON.stringify(store));
   }, [ready, store]);
 
-  const today = store.mealPlan[0] ?? defaultMealPlan[0];
-  const tomorrow = store.mealPlan[1] ?? defaultMealPlan[1];
+  const tomorrowIdx = (todayIdx + 1) % 7;
+  const today = store.mealPlan[todayIdx] ?? defaultMealPlan[todayIdx];
+  const tomorrow = store.mealPlan[tomorrowIdx] ?? defaultMealPlan[tomorrowIdx];
   const todayRecipe = recipes.find((recipe) => recipe.id === today.lunchRecipeId) ?? recipes[0];
   const tomorrowRecipe = recipes.find((recipe) => recipe.id === tomorrow.lunchRecipeId) ?? recipes[1];
   const activeRecipe = recipes.find((recipe) => recipe.id === activeRecipeId) ?? todayRecipe;
@@ -262,6 +274,38 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
     }));
   }
 
+  function exportStore() {
+    const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `轻食日历备份-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+  }
+
+  function importStore() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(String(reader.result)) as Store;
+          if (!Array.isArray(data.ingredients) || !Array.isArray(data.mealPlan)) throw new Error("bad shape");
+          if (!window.confirm("导入将覆盖当前的库存与菜单数据，确定吗？")) return;
+          setStore(withDefaults(data));
+        } catch {
+          window.alert("文件格式不对，导入失败");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
   function randomWeek() {
     const picked = [...recipes].sort(() => Math.random() - 0.5).slice(0, 7);
     setStore((current) => ({
@@ -277,8 +321,8 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
       <section className="mx-auto max-w-[88rem] px-4 pb-14 pt-7 sm:px-6">
         <div className="grid gap-5 lg:grid-cols-[.72fr_1.28fr]">
           <div className="rounded-[14px] border border-[#ece6dc] bg-white p-8 shadow-[0_16px_42px_rgba(70,63,48,.08)]">
-            <h1 className="font-serif text-[27px] leading-tight text-[#2f4328]">Good morning, Selene <span className="text-[#7f966b]">枝</span></h1>
-            <p className="mt-2 text-[15px] text-[#33382f]">今天是星期三</p>
+            <h1 className="font-serif text-[27px] leading-tight text-[#2f4328]">{greeting}, Selene <span className="text-[#7f966b]">枝</span></h1>
+            <p className="mt-2 text-[15px] text-[#33382f]">今天是{weekdayNames[todayIdx]}</p>
             <div className="mt-5 divide-y divide-[#ece6dc]">
               <MealPill icon="sun" label="早餐" value={today.breakfast} done={today.completedStatus.breakfast} />
               <MealPill icon="sun-hot" label="午餐" value={todayRecipe.name} done={today.completedStatus.lunch} active />
@@ -298,7 +342,7 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
             <section className="mt-6 grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
               <PlanCard
                 title="今天计划"
-                day="今天 · 星期三"
+                day={`今天 · ${weekdayNames[todayIdx]}`}
                 plan={today}
                 recipe={todayRecipe}
                 completion={completion * 25}
@@ -307,7 +351,7 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
               />
               <PlanCard
                 title="明天计划"
-                day="明天 · 星期四"
+                day={`明天 · ${weekdayNames[tomorrowIdx]}`}
                 plan={tomorrow}
                 recipe={tomorrowRecipe}
                 missing={tomorrowMissing}
@@ -321,7 +365,7 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
                   {store.mealPlan.map((day, index) => {
                     const recipe = recipes.find((item) => item.id === day.lunchRecipeId) ?? recipes[0];
                     return (
-                      <button key={day.date} onClick={() => setActiveRecipeId(recipe.id)} className={`rounded-[12px] border bg-white p-3 text-center shadow-[0_10px_28px_rgba(70,63,48,.06)] transition hover:-translate-y-0.5 ${index === 2 ? "border-[#8fa27c] bg-[#f3f5e9]" : "border-[#ece6dc]"}`}>
+                      <button key={day.date} onClick={() => setActiveRecipeId(recipe.id)} className={`rounded-[12px] border bg-white p-3 text-center shadow-[0_10px_28px_rgba(70,63,48,.06)] transition hover:-translate-y-0.5 ${index === todayIdx ? "border-[#8fa27c] bg-[#f3f5e9]" : "border-[#ece6dc]"}`}>
                         <span className="block font-semibold">{day.date}</span>
                         <RecipeImage recipe={recipe} className="mx-auto mt-3 h-[70px] w-[120px] rounded-xl" />
                         <b className="mt-3 block text-sm">{recipe.name}</b>
@@ -382,7 +426,7 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
             </section>
 
             <section id="history" className="mt-6">
-              <Panel title="库存历史记录" kicker="HISTORY">
+              <Panel title="库存历史记录" kicker="HISTORY" action={<div className="flex gap-3"><button onClick={exportStore} className="soft-button"><Download className="h-4 w-4" />导出数据</button><button onClick={importStore} className="soft-button"><Upload className="h-4 w-4" />导入数据</button></div>}>
                 <LogList logs={store.logs.slice(0, 5)} ingredients={store.ingredients} />
               </Panel>
             </section>

@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { PageHero } from "@/components/PageHero";
+
+export const metadata: Metadata = {
+  title: "About",
+  description: "A growing collection of ideas, systems, tools, and stories."
+};
+
 
 export default function AboutPage() {
   return (

@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#faf8f3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>身份投票</title>
 <style>
   :root{
@@ -89,6 +91,8 @@
     color:var(--sub);font-size:.85rem;letter-spacing:.2em;cursor:pointer;
   }
   .footlink{display:block;text-align:center;margin-top:34px;color:var(--faint);font-size:.78rem;letter-spacing:.2em;cursor:pointer}
+  .datalinks{display:flex;justify-content:center;gap:26px;margin-top:16px}
+  .datalinks span{color:var(--faint);font-size:.7rem;letter-spacing:.15em;cursor:pointer;padding:6px}
 
   /* ---------- 表单 ---------- */
   label{display:block;font-size:.72rem;letter-spacing:.2em;color:var(--sub);margin:24px 0 6px}
@@ -159,6 +163,7 @@
 <body>
 <div id="app"></div>
 <input type="file" id="file" accept="image/*" hidden>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
 <div id="toast"></div>
 
 <script>
@@ -257,7 +262,8 @@ function renderHome(){
   }
 
   if(db.identities.length<3) h+=`<div class="addlink" id="add">＋ 新的身份</div>`;
-  h+=`<div class="footlink" id="weekly">本周回顾</div>`;
+  h+=`<div class="footlink" id="weekly">本周回顾</div>
+    <div class="datalinks"><span id="exp">导出数据</span><span id="imp">导入数据</span></div>`;
   app.innerHTML=h;
 
   app.querySelectorAll('[data-vote]').forEach(el=>{
@@ -270,6 +276,8 @@ function renderHome(){
   const add=document.getElementById('add');
   if(add) add.onclick=()=>go({name:'form'});
   document.getElementById('weekly').onclick=()=>openWeekly(false);
+  document.getElementById('exp').onclick=exportData;
+  document.getElementById('imp').onclick=importData;
 
   maybeAutoWeekly();
 }
@@ -444,6 +452,36 @@ function openWeekly(auto){
   `, true);
   m.querySelector('#wok').onclick=()=>close(m);
   if(auto){ db.weekShown=weekKey(); save(); }
+}
+
+/* ============ 数据导出 / 导入 ============ */
+function exportData(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='身份投票备份-'+todayStr()+'.json';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  toast('已导出备份文件');
+}
+function importData(){
+  const inp=document.getElementById('importFile');
+  inp.onchange=e=>{
+    const f=e.target.files[0]; inp.value='';
+    if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const d=JSON.parse(r.result);
+        if(!d || !Array.isArray(d.identities) || typeof d.votes!=='object') throw 0;
+        if(!confirm('导入将覆盖当前的全部身份和投票记录，确定吗？')) return;
+        db=d; save(); go({name:'home'});
+        toast('导入完成');
+      }catch(err){ toast('文件格式不对，导入失败'); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
 }
 
 /* ============ 弹层通用 ============ */

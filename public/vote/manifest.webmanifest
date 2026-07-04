@@ -1,0 +1,14 @@
+{
+  "name": "身份投票",
+  "short_name": "身份投票",
+  "description": "每一次行动，都是为你想成为的人投的一票。",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#faf8f3",
+  "theme_color": "#faf8f3",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
