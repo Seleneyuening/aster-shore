@@ -1,5 +1,5 @@
 import { LightMealApp } from "@/components/LightMealApp";
 
-export default function HomePage() {
+export default function MealsHomePage() {
   return <LightMealApp view="home" />;
 }

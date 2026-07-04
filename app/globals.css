@@ -5,15 +5,15 @@
 :root {
   --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-sans: Inter, "Noto Sans SC", "PingFang SC", Arial, sans-serif;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
-  color: #3e4638;
-  background: #fbf8ef;
+  color: #f8efe7;
+  background: #091123;
   font-family: var(--font-sans);
 }
 

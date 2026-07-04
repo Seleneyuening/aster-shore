@@ -336,7 +336,7 @@ export function LightMealApp({ view = "home" }: { view?: "home" | "inventory" })
             </section>
 
             <section className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_.7fr]">
-              <Panel title="食材库" kicker="清楚看到家里有什么，吃得安心，买得不多余。" action={<div className="flex gap-3"><div className="hidden rounded-lg border border-[#e3ddd1] px-4 py-2 text-sm text-[#8c887a] sm:block"><Search className="mr-2 inline h-4 w-4" />搜索食材</div><Link href="/ingredients" className="soft-button"><SlidersHorizontal className="h-4 w-4" />筛选</Link></div>}>
+              <Panel title="食材库" kicker="清楚看到家里有什么，吃得安心，买得不多余。" action={<div className="flex gap-3"><div className="hidden rounded-lg border border-[#e3ddd1] px-4 py-2 text-sm text-[#8c887a] sm:block"><Search className="mr-2 inline h-4 w-4" />搜索食材</div><Link href="/meals/ingredients" className="soft-button"><SlidersHorizontal className="h-4 w-4" />筛选</Link></div>}>
                 <div className="grid gap-4 xl:grid-cols-[.78fr_1.22fr_1.1fr]">
                   <InventorySummary ingredients={store.ingredients} />
                   <FeaturedInventory item={store.ingredients.find((item) => item.id === "milk") ?? store.ingredients[0]} onUse={changeInventory} onRestock={restock} />
@@ -644,7 +644,7 @@ function InventorySummary({ ingredients }: { ingredients: Ingredient[] }) {
         <SummaryDot color="#d76b57" label="偏少" value={`${low} 种`} />
         <SummaryDot color="#8f5ea3" label="即将过期" value={`${expiring} 种`} />
       </div>
-      <Link href="/ingredients" className="mt-5 flex items-center justify-between rounded-lg bg-[#f0f1e7] px-4 py-3 text-sm text-[#596b52]">
+      <Link href="/meals/ingredients" className="mt-5 flex items-center justify-between rounded-lg bg-[#f0f1e7] px-4 py-3 text-sm text-[#596b52]">
         查看过期预警 <ChevronRight className="h-4 w-4" />
       </Link>
     </div>

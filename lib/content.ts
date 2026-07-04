@@ -1,11 +1,11 @@
-import { BookOpen, Compass, Feather, Flower2, Gem, Moon, PenLine, Shell, Sparkles, Waves } from "lucide-react";
+import { BookOpen, Compass, Feather, Flower2, Gem, Moon, PenLine, Salad, Shell, Sparkles, Vote, Waves } from "lucide-react";
 
 export const navLinks = [
-  { href: "/", label: "首页" },
-  { href: "/#week-plan", label: "一周菜单" },
-  { href: "/ingredients", label: "食材库" },
-  { href: "/#shopping", label: "购物清单" },
-  { href: "/#history", label: "我的记录" }
+  { href: "/journal", label: "Journal" },
+  { href: "/the-edit", label: "The Edit" },
+  { href: "/the-current", label: "The Current" },
+  { href: "/projects", label: "Projects" },
+  { href: "/about", label: "About" }
 ];
 
 export const worlds = [
@@ -31,6 +31,8 @@ export const posts = [
 ];
 
 export const projects = [
+  { title: "身份投票 · Identity Votes", body: "每一次行动，都是为你想成为的人投的一票。A daily identity voting ritual.", href: "/vote/", status: "Live", icon: Vote },
+  { title: "轻食日历 · Light Meals", body: "每日饮食计划、食材库与轻食菜单。Eat well, live lightly.", href: "/meals", status: "Live", icon: Salad },
   { title: "SignalScope", body: "AI trends, creator intelligence, and signal discovery.", status: "In development", icon: Sparkles },
   { title: "Beauty Atlas", body: "A curated beauty and skincare system.", href: "https://beauty.snowqin.com", status: "Live", icon: Flower2 },
   { title: "Boot Plan", body: "A daily reset and personal operating system.", status: "Coming soon", icon: BookOpen },
